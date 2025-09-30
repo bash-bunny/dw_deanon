@@ -1,0 +1,3 @@
+# Dependencies directories
+venv/
+.env

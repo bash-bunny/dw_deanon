@@ -1,0 +1,3 @@
+zoomeyeai
+dotenv
+requests[socks]
