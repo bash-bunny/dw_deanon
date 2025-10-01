@@ -61,4 +61,4 @@ if __name__ == "__main__":
             censys_api = os.getenv("CENSYS_KEY")
             shodan_api = os.getenv("SHODAN_KEY")
         else:
-            parser.print_help()
+            parse.print_help()
