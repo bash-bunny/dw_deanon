@@ -5,6 +5,7 @@ import re
 import hashlib
 import requests
 import argparse
+import codecs
 import zoomeyeai.sdk as zoomeye
 from dotenv import load_dotenv, dotenv_values
 from urllib3.exceptions import InsecureRequestWarning
@@ -54,6 +55,41 @@ def check_tls(domain, timeout=60):
     except Exception as e:
         return 0
 
+# Retrieve favicon from the webpage
+def fetch_favicon(url, path, timeout=60):
+    succeed = False
+    try:
+        r = session.get(url, timeout=timeout)
+        if r.status_code == 200:
+            with open(path+"/favicon.ico", "wb") as f:
+                f.write(r.content)
+                succeed = True
+        else:
+            print(f"[!] The {url} does not have a favicon")
+        return succeed
+    except Exception as e:
+        print(f"[!] Exception retrieving the favicon: {e}")
+        return succeed
+
+# Calculate the md5 hash for the favicon.ico file
+def generate_favicon_hash(favicon_file):
+    with open(favicon_file, "rb") as file:
+        favicon_data = file.read()
+        encoded_data = codecs.encode(favicon_data, "base64")
+        return hashlib.md5(favicon_data).hexdigest()
+
+# Check the server-status path
+def check_server_status(url, timeout=60):
+    succeed = False
+    try:
+        r = session.get(url, timeout=timeout)
+        if r.status_code == 200:
+            succeed = True
+    except Exception as e:
+        print(f"[!] Exception accessing the /server-status path: {e}")
+    return succeed
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dark Web Deanonimization")
     parser.add_argument("--domain", help="Dark web domain to try to deanonimize")
@@ -76,14 +112,32 @@ if __name__ == "__main__":
         # Create folder to store the results for a particular domain
         folder = domain.replace(".","_")
         create_folder(folder)
+        url = ""
 
         # Check TLS
         tls = check_tls(domain)
         if (tls != 0):
-            print(f"The {domain} use TLS")
+            url = "https://"+domain
+            print(f"TLS hash for {domain}")
             print(tls)
         else:
+            url = "http://"+domain
             print(f"[!] The {domain} do not use TLS")
+
+        # Check favicon
+        url_favicon = url+"/favicon.ico"
+        if fetch_favicon(url_favicon, folder):
+            favicon_file = os.path.join(folder, "favicon.ico")
+            favicon_hash = generate_favicon_hash(favicon_file)
+            print(f"Favicon hash for {domain}")
+            print(f"{favicon_hash}")
+
+        # Check server-status
+        url_server_status = url+"/server-status"
+        server_status = check_server_status(url_server_status)
+        if server_status:
+            print(f"Server Status available on {domain}")
+
 
         # Load the API KEYS
         #load_dotenv()
