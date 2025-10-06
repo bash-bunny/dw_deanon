@@ -1,3 +1,5 @@
 zoomeyeai
 dotenv
 requests[socks]
+bs4
+shodan

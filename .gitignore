@@ -1,3 +1,4 @@
 # Dependencies directories
 venv/
 .env
+*onion/
