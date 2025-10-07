@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
-import os
-import re
-import hashlib
-import requests
-import argparse
-import codecs
-import json
+import os, re, hashlib, requests, argparse, codecs, json
 import shodan
+from pathlib import Path
+from censys.search import CensysHosts
 import zoomeyeai.sdk as zoomeye
 from dotenv import load_dotenv, dotenv_values
 from urllib3.exceptions import InsecureRequestWarning
@@ -17,8 +13,7 @@ from bs4 import BeautifulSoup
 load_dotenv()
 zoomeye_api = os.getenv("ZOOMEYE_KEY")
 shodan_api = os.getenv("SHODAN_KEY")
-censys_api_id = os.getenv("CENSYS_API_ID")
-censys_api_secret = os.getenv("CENSYS_API_SECRET")
+censys_api_file = Path("~/.config/censys/censys.cfg").expanduser()
 
 # Set Global Variables
 ## Suppress the warnings from urllib3
@@ -73,7 +68,6 @@ def fetch_title(domain, timeout=60):
         print(f"Exception retrieving the title: {e}")
     return title
 
-
 # Retrieve favicon from the webpage
 def fetch_favicon(url, path, timeout=60):
     succeed = False
@@ -98,12 +92,13 @@ def generate_favicon_hash(favicon_file):
         return hashlib.md5(favicon_data).hexdigest()
 
 # Check the server-status path
-def check_server_status(url, timeout=60):
+def check_server_status(url, path, timeout=60):
     succeed = False
     try:
         r = session.get(url, timeout=timeout)
         if r.status_code == 200:
             succeed = True
+            write_results(r.text, path)
     except Exception as e:
         print(f"[!] Exception accessing the /server-status path: {e}")
     return succeed
@@ -123,6 +118,7 @@ def zoomeye_search(api_key, search, path):
     except Exception as e:
         print(f"[!] Exception searching with zoomeye: {e}")
 
+# Shodan search
 def shodan_search(api_key, search, path):
     try:
         api = shodan.Shodan(api_key)
@@ -132,6 +128,18 @@ def shodan_search(api_key, search, path):
             write_results(json.dumps(data), path)
     except Exception as e:
         print(f"[!] Exception searching with shodan: {e}")
+
+# Censys search
+def censys_search(search, path):
+    h = CensysHosts()
+    try:
+        query = h.search(search)
+        data = query.view_all()
+        if len(data) > 0:
+            print(data)
+            write_results(json.dumps(data), path)
+    except Exception as e:
+        print(f"[!] Exception searching with censys: {e}")
 
 
 if __name__ == "__main__":
@@ -196,14 +204,15 @@ if __name__ == "__main__":
 
         # Check server-status
         url_server_status = url+"/server-status"
-        server_status = check_server_status(url_server_status)
+        server_status_results = os.path.join(folder, "server_status.html")
+        server_status = check_server_status(url_server_status, server_status_results)
         if server_status:
             print(f"Server Status available on {domain}")
             write_results(f"Server status available on: {url}/server-status\n", path)
 
         if zoomeye_api:
             zoomeye_results = os.path.join(folder, "zoomeye_results.json")
-            print(f"Searching with Zoomeye...\n")
+            print(f"Searching with Zoomeye...")
             zoomeye_search(zoomeye_api, domain, zoomeye_results)
             if tls:
                 search = f"ssl.cert.fingerprint={tls}"
@@ -214,18 +223,18 @@ if __name__ == "__main__":
             if favicon_hash:
                 search = f"iconhash='{favicon_hash}'"
                 zoomeye_search(zoomeye_api, search, zoomeye_results)
-        if censys_api_id and censys_api_secret:
+        if censys_api_file.is_file() and censys_api_file.stat().st_size > 0:
             censys_results = os.path.join(folder, "censys_results.json")
-            print(f"Searching with Censys...\n")
+            print(f"Searching with Censys...")
             if tls:
-                search = f"ssl.cert.fingerprint={tls}"
-                censys_search(censys_api_id, censys_api_secret, search, censys_results)
+                search = f"fingerprint_sha1:'{tls}'"
+                censys_search(search, censys_results)
             if title:
-                search = f"title='{title}'"
-                censys_search(censys_api_id, censys_api_secret, search, censys_results)
+                search = f"services.http.response.html_title: '{title}'"
+                censys_search(search, censys_results)
             if favicon_hash:
-                search = f"iconhash='{favicon_hash}'"
-                censys_search(censys_api_id, censys_api_secret, search, censys_results)
+                search = f"services.http.response.favicons.hashes:'{favicon_hash}'"
+                censys_search(search, censys_results)
         if shodan_api:
             shodan_results = os.path.join(folder, "shodan_results.json")
             print(f"Searching with Shodan...")
