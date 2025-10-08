@@ -226,6 +226,7 @@ if __name__ == "__main__":
         if censys_api_file.is_file() and censys_api_file.stat().st_size > 0:
             censys_results = os.path.join(folder, "censys_results.json")
             print(f"Searching with Censys...")
+            censys_search(domain, censys_results)
             if tls:
                 search = f"fingerprint_sha1:'{tls}'"
                 censys_search(search, censys_results)
