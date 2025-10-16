@@ -152,12 +152,12 @@ if __name__ == "__main__":
         if not re.search(r'.*onion$', args.domain):
             # If not exit
             print("[!] That's not a dark web domain")
-            exit
+            exit()
         else:
             # Test connectivity through TOR
             if not test_tor_connection():
                 print("[!] Tor connection failed. Please start Tor (e.g., `tor` or `service tor start`).")
-                exit
+                exit()
             # If it's connected to the TOR network grab the domain
             domain = re.sub(r"https?://", "", args.domain)
 
