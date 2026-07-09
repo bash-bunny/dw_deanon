@@ -24,8 +24,8 @@ session.verify = False
 
 # requests variables
 proxies = {
-    'http': 'socks5h://127.0.0.1:9153',
-    'https': 'socks5h://127.0.0.1:9153'
+    'http': 'socks5h://127.0.0.1:9050',
+    'https': 'socks5h://127.0.0.1:9050'
 }
 headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0'}
 verify = False
