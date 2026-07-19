@@ -32,6 +32,7 @@ Create the file `.env` with the following data:
 ```
 ZOOMEYE_KEY="ZOOMEYE-API-KEY"
 SHODAN_KEY="SHODAN-API-KEY"
+MODAT_KEY="MODAT-API-KEY"
 ```
 
 For Censys you must follow [their guide](https://censys-python.readthedocs.io/en/stable/quick-start.html)
